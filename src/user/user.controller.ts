@@ -1,8 +1,9 @@
 import { Body, Controller, Get, Inject, Post, Query } from '@nestjs/common';
 import { UserService } from './user.service';
-import { RegisterUserDto } from './dto/register';
+import { RegisterUserDto } from './dto/register.dto';
 import { RedisService } from 'src/redis/redis.service';
 import { EmailService } from 'src/email/email.service';
+import { LoginUserDto } from './dto/login.dto';
 
 @Controller('user')
 export class UserController {
@@ -17,7 +18,7 @@ export class UserController {
   // 注册
   @Post('register')
   async register(@Body() registerUser: RegisterUserDto) {
-    return this.userService.register(registerUser);
+    return await this.userService.register(registerUser);
   }
 
   // 获取验证码
@@ -31,5 +32,28 @@ export class UserController {
       html: `<h1>您的验证码：${code}</h1>`,
     });
     return '验证码已发送';
+  }
+
+  // 登录
+  @Post('login')
+  async login(@Body() loginUser: LoginUserDto) {
+    return await this.userService.login(loginUser);
+  }
+
+  // 管理员登录
+  @Post('admin/login')
+  async adminLogin(@Body() loginUser: LoginUserDto) {
+    return await this.userService.login(loginUser, true);
+  }
+
+  // 刷新refresh token
+  @Post('refresh')
+  async refreshToken(@Body('refresh_token') refreshToken: string) {
+    return await this.userService.refreshToken(refreshToken);
+  }
+
+  @Post('admin/refresh')
+  async adminRefreshToken(@Body('refresh_token') refreshToken: string) {
+    return await this.userService.refreshToken(refreshToken, true);
   }
 }

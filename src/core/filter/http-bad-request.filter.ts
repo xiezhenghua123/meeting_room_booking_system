@@ -27,8 +27,9 @@ export class HttpBadRequestFilter implements ExceptionFilter {
       responseData['message'] = data;
       responseData['code'] = status;
     } else {
-      responseData['code'] = data['code'];
+      responseData['code'] = data['statusCode'];
       responseData['message'] = data['message'];
+      responseData['error'] = data['error'];
     }
     response.status(status).json(responseData);
   }

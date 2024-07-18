@@ -23,7 +23,7 @@ export class User {
   username: string;
 
   @Column({
-    length: 50,
+    length: 100,
     comment: '密码',
   })
   password: string;
@@ -60,6 +60,13 @@ export class User {
     default: false,
   })
   isFrozen: boolean;
+
+  // 是否为管理员
+  @Column({
+    comment: '是否为管理员',
+    default: false,
+  })
+  isAdmin: boolean;
 
   @CreateDateColumn()
   createTime: Date;
