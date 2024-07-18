@@ -116,7 +116,6 @@ export class UserService {
     if (!user) {
       throw new HttpException('用户不存在', HttpStatus.BAD_REQUEST);
     }
-    console.log('login', user, loginUser.password, md5(loginUser.password));
     if (user.password !== md5(loginUser.password)) {
       throw new HttpException('密码错误', HttpStatus.BAD_REQUEST);
     }

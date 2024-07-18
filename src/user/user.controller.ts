@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Inject, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Post,
+  Query,
+  SetMetadata,
+} from '@nestjs/common';
 import { UserService } from './user.service';
 import { RegisterUserDto } from './dto/register.dto';
 import { RedisService } from 'src/redis/redis.service';
@@ -55,5 +63,13 @@ export class UserController {
   @Post('admin/refresh')
   async adminRefreshToken(@Body('refresh_token') refreshToken: string) {
     return await this.userService.refreshToken(refreshToken, true);
+  }
+
+  // 测试接口
+  @Get('test')
+  @SetMetadata('require-login', true)
+  @SetMetadata('require-permission', ['test'])
+  async test() {
+    return 'test';
   }
 }
