@@ -8,7 +8,7 @@ export class RedisService {
 
   async get(key: string) {
     // implementation
-    await this.redisClient.get(key);
+    return await this.redisClient.get(key);
   }
 
   async set(key: string, value: string | number, ttl?: number) {
