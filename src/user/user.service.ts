@@ -77,10 +77,59 @@ export class UserService {
   }
 
   // 初始化测试数据
-  // async initData() {
-  //  // 初始化角色表
+  async initData() {
+    // 初始化权限
+    const permission1 = this.permissionRepository.create({
+      // id: 1,
+      code: 'test',
+      description: '测试权限1',
+    });
+    const permission2 = this.permissionRepository.create({
+      id: 2,
+      code: 'test2',
+      description: '测试权限2',
+    });
+    await this.permissionRepository.save([permission1, permission2]);
 
-  // }
+    // 初始化角色表
+    const adminRole = this.roleRepository.create({
+      // id: 1,
+      name: 'role_admin',
+      permissions: [permission1, permission2],
+    });
+    const userRole = this.roleRepository.create({
+      // id: 2,
+      name: 'role_user',
+      permissions: [permission1],
+    });
+    await this.roleRepository.save([adminRole, userRole]);
+
+    // // 初始化管理员
+    const adminUser = this.userRepository.create({
+      // id: 1,
+      username: 'admin',
+      password: md5('admin'),
+      nickName: '管理员1',
+      email: '1803493121@qq.com',
+      headPic: '',
+      phoneNumber: '123456789',
+      isFrozen: false,
+      isAdmin: true,
+      roles: [adminRole],
+    });
+    const user = this.userRepository.create({
+      // id: 2,
+      username: 'user',
+      password: md5('user'),
+      nickName: '用户1',
+      email: '1803493121@qq.com',
+      headPic: '',
+      phoneNumber: '123456789',
+      isFrozen: false,
+      roles: [userRole],
+    });
+    await this.userRepository.save([adminUser, user]);
+  }
 
   transformUser(user: User) {
     return {

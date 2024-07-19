@@ -72,4 +72,9 @@ export class UserController {
   async test() {
     return 'test';
   }
+
+  @Get('init-data')
+  async initData() {
+    return await this.userService.initData();
+  }
 }
