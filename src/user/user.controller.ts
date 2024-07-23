@@ -15,7 +15,7 @@ import { RequireLogin, UserInfo } from 'src/core/decorator/custom.decorator';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PageDto } from './dto/page.dto';
-import { ApiBody, ApiParam } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiParam } from '@nestjs/swagger';
 import { LoginUserVo } from './vo/login-user.vo';
 import { RefreshTokenVo } from './vo/refresh_token.vo';
 import { PageVo } from './vo/page.vo';
@@ -83,6 +83,7 @@ export class UserController {
   }
 
   // 获取用户信息
+  @ApiBearerAuth()
   @ApiResult(UserDetailVo, '获取用户信息')
   @Get('info')
   @RequireLogin()
