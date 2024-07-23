@@ -1,74 +1,200 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   Get,
-  Inject,
+  Param,
   Post,
   Query,
-  SetMetadata,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { RegisterUserDto } from './dto/register.dto';
-import { RedisService } from 'src/redis/redis.service';
-import { EmailService } from 'src/email/email.service';
 import { LoginUserDto } from './dto/login.dto';
+import { UserDetailVo } from './vo/user-detail.vo';
+import { RequireLogin, UserInfo } from 'src/core/decorator/custom.decorator';
+import { UpdatePasswordDto } from './dto/update-password.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { PageDto } from './dto/page.dto';
+import { ApiBody, ApiParam } from '@nestjs/swagger';
+import { LoginUserVo } from './vo/login-user.vo';
+import { RefreshTokenVo } from './vo/refresh_token.vo';
+import { PageVo } from './vo/page.vo';
+import {
+  ApiPagerResult,
+  ApiResult,
+} from 'src/core/decorator/api-result.decorator';
 
 @Controller('user')
 export class UserController {
-  @Inject(RedisService)
-  private redisService: RedisService;
-
-  @Inject(EmailService)
-  private emailService: EmailService;
-
   constructor(private readonly userService: UserService) {}
 
+  @ApiBody({ type: RegisterUserDto })
+  @ApiResult(String, '注册')
   // 注册
   @Post('register')
   async register(@Body() registerUser: RegisterUserDto) {
     return await this.userService.register(registerUser);
   }
 
-  // 获取验证码
+  @ApiParam({
+    name: 'address',
+    type: String,
+    description: '邮箱地址',
+    required: true,
+  })
+  @ApiResult(String, '获取验证码')
   @Get('register-captcha')
   async captcha(@Query('address') address: string) {
-    const code = Math.random().toString().slice(2, 8);
-    await this.redisService.set(`captcha_${address}`, code, 60 * 5);
-    await this.emailService.sendEmail({
-      to: address,
-      subject: '注册验证码',
-      html: `<h1>您的验证码：${code}</h1>`,
-    });
-    return '验证码已发送';
+    return await this.userService.sendCaptcha(address, 'register', '注册');
   }
 
   // 登录
+  @ApiBody({
+    type: LoginUserDto,
+  })
+  @ApiResult(LoginUserVo, '普通用户登录')
   @Post('login')
   async login(@Body() loginUser: LoginUserDto) {
     return await this.userService.login(loginUser);
   }
 
   // 管理员登录
+  @ApiBody({
+    type: LoginUserDto,
+  })
+  @ApiResult(LoginUserVo, '管理员登录')
   @Post('admin/login')
   async adminLogin(@Body() loginUser: LoginUserDto) {
     return await this.userService.login(loginUser, true);
   }
 
   // 刷新refresh token
-  @Post('refresh')
-  async refreshToken(@Body('refresh_token') refreshToken: string) {
+  @ApiParam({
+    description: '刷新TOken',
+    type: String,
+    required: true,
+    name: 'refresh_token',
+  })
+  @ApiResult(RefreshTokenVo, '刷新token')
+  @Get(['admin/refresh', 'refresh'])
+  @RequireLogin()
+  async refreshToken(@Query('refresh_token') refreshToken: string) {
     return await this.userService.refreshToken(refreshToken);
   }
 
-  @Post('admin/refresh')
-  async adminRefreshToken(@Body('refresh_token') refreshToken: string) {
-    return await this.userService.refreshToken(refreshToken, true);
+  // 获取用户信息
+  @ApiResult(UserDetailVo, '获取用户信息')
+  @Get('info')
+  @RequireLogin()
+  async info(@UserInfo('userId') userId: number) {
+    const data = await this.userService.findUserById(userId);
+    const userDetail = new UserDetailVo();
+    userDetail.userId = data.id;
+    userDetail.username = data.username;
+    userDetail.nickName = data.nickName;
+    userDetail.email = data.email;
+    userDetail.headPic = data.headPic;
+    userDetail.phoneNumber = data.phoneNumber;
+    userDetail.isFrozen = data.isFrozen;
+    userDetail.isAdmin = data.isAdmin;
+    return userDetail;
+  }
+
+  // 修改用户密码
+  @ApiBody({
+    description: '用户ID',
+    type: Number,
+    required: true,
+  })
+  @ApiResult(String, '修改密码')
+  @Post(['admin/password', 'password'])
+  @RequireLogin()
+  async changePassword(
+    @UserInfo('userId') userId: number,
+    @Body() passwordDto: UpdatePasswordDto,
+  ) {
+    return await this.userService.updatePassword(userId, passwordDto);
+  }
+
+  // 用户修改密码验证码
+  @ApiParam({
+    description: '邮箱',
+    type: String,
+    required: true,
+    name: 'email',
+  })
+  @ApiResult(String, '用户修改密码验证码')
+  @Get('password-captcha')
+  @RequireLogin()
+  async passwordCaptcha(@Param('email') email: string) {
+    return await this.userService.sendCaptcha(
+      email,
+      'update-password',
+      '修改密码',
+    );
+  }
+
+  // 修改用户信息
+  @ApiBody({
+    type: UpdateUserDto,
+  })
+  @ApiResult(String, '修改用户信息')
+  @Post(['update', 'admin/update'])
+  @RequireLogin()
+  async updateUserInfo(
+    @UserInfo('userId') userId: number,
+    @Body() user: UpdateUserDto,
+  ) {
+    return await this.userService.updateUserInfo(userId, user);
+  }
+
+  // 修改用户信息验证码
+  @ApiParam({
+    description: '邮箱',
+    type: String,
+    required: true,
+    name: 'email',
+  })
+  @ApiResult(String, '修改用户信息验证码')
+  @Get('update-captcha')
+  @RequireLogin()
+  async updateCaptcha(@Param('email') email: string) {
+    return await this.userService.sendCaptcha(
+      email,
+      'update-user',
+      '修改用户信息',
+    );
+  }
+
+  // 冻结用户
+  @ApiParam({
+    description: '用户ID',
+    type: Number,
+    required: true,
+    name: 'userId',
+  })
+  @ApiResult(String, '冻结用户')
+  @Get('freeze')
+  async freezeUser(@Query('userId') userId: number) {
+    return await this.userService.freezeUser(userId);
+  }
+
+  // 获取用户列表(可搜索用户名)
+  @ApiBody({
+    type: PageDto,
+  })
+  @ApiPagerResult(UserDetailVo)
+  @Post('list')
+  async userPageList(
+    @Body('pageNo', new DefaultValuePipe(1)) pageNo: PageDto['pageNo'],
+    @Body('pageSize', new DefaultValuePipe(10)) pageSize: PageDto['pageSize'],
+    @Body('keyword', new DefaultValuePipe('')) keyword: PageDto['keyword'],
+  ): Promise<PageVo<UserDetailVo>> {
+    return await this.userService.getUserPageList(pageNo, pageSize, keyword);
   }
 
   // 测试接口
   @Get('test')
-  @SetMetadata('require-login', true)
-  @SetMetadata('require-permission', ['test'])
   async test() {
     return 'test';
   }

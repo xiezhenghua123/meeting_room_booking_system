@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
-import { Repository } from 'typeorm';
+import { Like, Repository } from 'typeorm';
 import { RegisterUserDto } from './dto/register.dto';
 import { RedisService } from 'src/redis/redis.service';
 import { md5 } from 'src/core/utils';
@@ -17,6 +17,9 @@ import { LoginUserDto } from './dto/login.dto';
 import { LoginUserVo, UserInfo } from './vo/login-user.vo';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { UpdatePasswordDto } from './dto/update-password.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class UserService {
@@ -40,11 +43,12 @@ export class UserService {
   @Inject(ConfigService)
   private configService: ConfigService;
 
+  @Inject(EmailService)
+  private EmailService: EmailService;
+
   async register(user: RegisterUserDto) {
     // redis中拿到验证码
-    const captcha = (await this.redisService.get(
-      `captcha_${user.email}`,
-    )) as unknown;
+    const captcha = await this.getCaptcha(user.email, 'register');
     if (!captcha) {
       throw new HttpException('验证码已过期', HttpStatus.BAD_REQUEST);
     }
@@ -203,10 +207,10 @@ export class UserService {
       refreshToken,
     };
   }
-  async refreshToken(refreshToken: string, isAdmin = false) {
+  async refreshToken(refreshToken: string) {
     try {
       const data = this.jwtService.verify(refreshToken);
-      const user = await this.findUserById(data.userId, isAdmin);
+      const user = await this.findUserById(data.userId);
       const { accessToken: access_token, refreshToken: refresh_token } =
         this.generateToken(user);
       return {
@@ -221,11 +225,10 @@ export class UserService {
     }
   }
 
-  async findUserById(id: number, isAdmin = false) {
+  async findUserById(id: number) {
     const user = await this.userRepository.findOne({
       where: {
         id,
-        isAdmin,
       },
       relations: ['roles', 'roles.permissions'],
     });
@@ -233,5 +236,113 @@ export class UserService {
       throw new HttpException('用户不存在', HttpStatus.BAD_REQUEST);
     }
     return this.transformUser(user);
+  }
+
+  async updatePassword(userId: number, passwordDto: UpdatePasswordDto) {
+    // 拿到验证码
+    const captcha = await this.redisService.get(
+      `update-password_captcha_${passwordDto.email}`,
+    );
+    if (!captcha) {
+      throw new HttpException('验证码已过期', HttpStatus.BAD_REQUEST);
+    }
+    if (captcha !== passwordDto.captcha) {
+      throw new HttpException('验证码错误', HttpStatus.BAD_REQUEST);
+    }
+
+    try {
+      await this.userRepository.update(
+        { id: userId },
+        { password: passwordDto.password },
+      );
+      return '密码修改成功';
+    } catch (e) {
+      this.logger.error(e, UserService);
+      throw new HttpException('密码修改失败', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  async updateUserInfo(userId: number, user: UpdateUserDto) {
+    // 先拿到验证码
+    const captcha = await this.getCaptcha(user.email, 'update-user');
+    if (!captcha) {
+      throw new HttpException('验证码已过期', HttpStatus.BAD_REQUEST);
+    }
+    if (captcha !== user.captcha) {
+      throw new HttpException('验证码错误', HttpStatus.BAD_REQUEST);
+    }
+
+    const foundUser = await this.userRepository.findOneBy({
+      id: userId,
+    });
+
+    user.nickName && (foundUser.nickName = user.nickName);
+    user.headPic && (foundUser.headPic = user.headPic);
+
+    try {
+      await this.userRepository.save(foundUser);
+      return '用户信息修改成功';
+    } catch (e) {
+      this.logger.error(e, UserService);
+      throw new HttpException('修改失败', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  // 发送验证码
+  async sendCaptcha(email: string, type: string, title?: string) {
+    const code = Math.random().toString().slice(2, 8);
+    await this.redisService.set(`${type}_captcha_${email}`, code, 60 * 5);
+    await this.EmailService.sendEmail({
+      to: email,
+      subject: `${title}验证码`,
+      html: `<h1>您的验证码：${code}</h1>`,
+    });
+    return '验证码已发送';
+  }
+
+  // 获取验证码
+  async getCaptcha(email: string, type: string) {
+    return await this.redisService.get(`${type}_captcha_${email}`);
+  }
+
+  async freezeUser(userId: number) {
+    const user = await this.userRepository.findOneBy({
+      id: userId,
+    });
+    if (!user) {
+      throw new HttpException('用户不存在', HttpStatus.BAD_REQUEST);
+    }
+    user.isFrozen = true;
+    await this.userRepository.save(user);
+    return '冻结成功';
+  }
+
+  async getUserPageList(pageNo: number, pageSize: number, keyword = '') {
+    const [list, total] = await this.userRepository.findAndCount({
+      where: {
+        username: Like(`%${keyword}%`),
+      },
+      order: {
+        createTime: 'DESC',
+      },
+      skip: (pageNo - 1) * pageSize,
+      take: pageSize,
+      select: [
+        'id',
+        'username',
+        'nickName',
+        'email',
+        'headPic',
+        'createTime',
+        'isFrozen',
+      ],
+    });
+    return {
+      list: list.map((item) => ({
+        userId: item.id,
+        ...item,
+      })),
+      total,
+    };
   }
 }
