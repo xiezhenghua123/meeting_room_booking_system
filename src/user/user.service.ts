@@ -238,7 +238,7 @@ export class UserService {
     return this.transformUser(user);
   }
 
-  async updatePassword(userId: number, passwordDto: UpdatePasswordDto) {
+  async updatePassword(passwordDto: UpdatePasswordDto) {
     // 拿到验证码
     const captcha = await this.redisService.get(
       `update-password_captcha_${passwordDto.email}`,
@@ -250,10 +250,21 @@ export class UserService {
       throw new HttpException('验证码错误', HttpStatus.BAD_REQUEST);
     }
 
+    const foundUser = await this.userRepository.findOneBy({
+      username: passwordDto.username,
+    });
+
+    if (!foundUser) {
+      throw new HttpException('用户不存在', HttpStatus.BAD_REQUEST);
+    }
+
+    if (foundUser.email !== passwordDto.email) {
+      throw new HttpException('邮箱错误', HttpStatus.BAD_REQUEST);
+    }
     try {
       await this.userRepository.update(
-        { id: userId },
-        { password: passwordDto.password },
+        { id: foundUser.id },
+        { password: md5(passwordDto.password) },
       );
       return '密码修改成功';
     } catch (e) {
@@ -278,6 +289,7 @@ export class UserService {
 
     user.nickName && (foundUser.nickName = user.nickName);
     user.headPic && (foundUser.headPic = user.headPic);
+    user.phoneNumber && (foundUser.phoneNumber = user.phoneNumber);
 
     try {
       await this.userRepository.save(foundUser);
@@ -290,6 +302,9 @@ export class UserService {
 
   // 发送验证码
   async sendCaptcha(email: string, type: string, title?: string) {
+    if (!email) {
+      throw new HttpException('邮箱不能为空', HttpStatus.BAD_REQUEST);
+    }
     const code = Math.random().toString().slice(2, 8);
     await this.redisService.set(`${type}_captcha_${email}`, code, 60 * 5);
     await this.EmailService.sendEmail({

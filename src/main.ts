@@ -6,9 +6,15 @@ import { TransformInterceptor } from './core/interceptor/transform.interceptor';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { InvokeRecordInterceptor } from './core/interceptor/invoke-record.interceptor';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  app.useStaticAssets('uploads', {
+    prefix: '/uploads',
+  });
+
   app.useGlobalPipes(new ValidationPipe());
   app.useGlobalFilters(new HttpBadRequestFilter());
   app.useGlobalInterceptors(new TransformInterceptor());

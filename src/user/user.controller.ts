@@ -1,11 +1,15 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   DefaultValuePipe,
   Get,
-  Param,
+  Headers,
+  Inject,
   Post,
   Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { RegisterUserDto } from './dto/register.dto';
@@ -15,7 +19,7 @@ import { RequireLogin, UserInfo } from 'src/core/decorator/custom.decorator';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PageDto } from './dto/page.dto';
-import { ApiBearerAuth, ApiBody, ApiParam } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiParam } from '@nestjs/swagger';
 import { LoginUserVo } from './vo/login-user.vo';
 import { RefreshTokenVo } from './vo/refresh_token.vo';
 import { PageVo } from './vo/page.vo';
@@ -23,10 +27,18 @@ import {
   ApiPagerResult,
   ApiResult,
 } from 'src/core/decorator/api-result.decorator';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { extname } from 'path';
+import storage from 'src/core/file-storage';
+import { UploadDto } from 'src/types/upload.dto';
+import { JwtService } from '@nestjs/jwt';
 
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
+
+  @Inject(JwtService)
+  JwtService: JwtService;
 
   @ApiBody({ type: RegisterUserDto })
   @ApiResult(String, '注册')
@@ -103,18 +115,14 @@ export class UserController {
 
   // 修改用户密码
   @ApiBody({
-    description: '用户ID',
-    type: Number,
+    description: '用户修改密码',
+    type: UpdatePasswordDto,
     required: true,
   })
   @ApiResult(String, '修改密码')
   @Post(['admin/password', 'password'])
-  @RequireLogin()
-  async changePassword(
-    @UserInfo('userId') userId: number,
-    @Body() passwordDto: UpdatePasswordDto,
-  ) {
-    return await this.userService.updatePassword(userId, passwordDto);
+  async changePassword(@Body() passwordDto: UpdatePasswordDto) {
+    return await this.userService.updatePassword(passwordDto);
   }
 
   // 用户修改密码验证码
@@ -127,7 +135,7 @@ export class UserController {
   @ApiResult(String, '用户修改密码验证码')
   @Get('password-captcha')
   @RequireLogin()
-  async passwordCaptcha(@Param('email') email: string) {
+  async passwordCaptcha(@Query('email') email: string) {
     return await this.userService.sendCaptcha(
       email,
       'update-password',
@@ -159,7 +167,7 @@ export class UserController {
   @ApiResult(String, '修改用户信息验证码')
   @Get('update-captcha')
   @RequireLogin()
-  async updateCaptcha(@Param('email') email: string) {
+  async updateCaptcha(@Query('email') email: string) {
     return await this.userService.sendCaptcha(
       email,
       'update-user',
@@ -192,6 +200,60 @@ export class UserController {
     @Body('keyword', new DefaultValuePipe('')) keyword: PageDto['keyword'],
   ): Promise<PageVo<UserDetailVo>> {
     return await this.userService.getUserPageList(pageNo, pageSize, keyword);
+  }
+
+  // 图片上传
+  @ApiBody({
+    description: '图片上传',
+    type: UploadDto,
+    required: true,
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiResult(String, '图片上传')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      dest: 'uploads',
+      storage: storage('uploads'),
+      limits: {
+        fileSize: 1024 * 1024 * 3, //
+      },
+      fileFilter: (req, file, cb) => {
+        const name = extname(file.originalname);
+        const allowExt = ['.jpg', '.jpeg', '.png', '.gif'];
+        if (allowExt.includes(name)) {
+          cb(null, true);
+        } else {
+          {
+            cb(new BadRequestException('只支持图片'), false);
+          }
+        }
+      },
+    }),
+  )
+  @Post('upload')
+  @RequireLogin()
+  async uploadFile(@UploadedFile() file: Express.Multer.File) {
+    return file.destination + file.filename;
+  }
+
+  // 检查是否登录过期
+  @ApiResult(Boolean, '检查登录')
+  @Get('check-login')
+  async checkLogin(@Headers('authorization') authorization: string) {
+    if (!authorization) {
+      return false;
+    }
+
+    try {
+      const [, token] = authorization.split(' ');
+      const data = this.JwtService.verify(token);
+      if (!data) {
+        return false;
+      }
+      return true;
+    } catch (error) {
+      return false;
+    }
   }
 
   // 测试接口
