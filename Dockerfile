@@ -1,4 +1,4 @@
-FROM node:18.0-alpine3.14 as build-stage
+FROM node:18.0-alpine3.14 AS build-stage
 
 WORKDIR /app
 
@@ -11,7 +11,7 @@ COPY . .
 RUN npm run build
 
 # production stage
-FROM node:18.0-alpine3.14 as production-stage
+FROM node:18.0-alpine3.14 AS production-stage
 
 COPY --from=build-stage /app/dist /app
 COPY --from=build-stage /app/package.json /app/package.json
