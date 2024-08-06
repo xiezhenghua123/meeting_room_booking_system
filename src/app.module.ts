@@ -18,7 +18,8 @@ import { PermissionGuard } from './core/guard/permission.guard';
         return {
           secret: configService.get('jwt_secret'),
           signOptions: {
-            expiresIn: configService.get('jwt_access_token_expires_in'),
+            // expiresIn: configService.get('jwt_access_token_expires_in'),
+            algorithm: 'HS256',
           },
         };
       },

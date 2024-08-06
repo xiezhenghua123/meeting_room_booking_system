@@ -20,6 +20,7 @@ import { ConfigService } from '@nestjs/config';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { EmailService } from '../email/email.service';
+import { LoginGuard } from '../core/guard/login.guard';
 
 @Injectable()
 export class UserService {
@@ -45,6 +46,9 @@ export class UserService {
 
   @Inject(EmailService)
   private EmailService: EmailService;
+
+  @Inject(LoginGuard)
+  private LoginGuard: LoginGuard;
 
   async register(user: RegisterUserDto) {
     // redis中拿到验证码
@@ -179,21 +183,22 @@ export class UserService {
     vo.accessToken = accessToken;
 
     vo.refreshToken = refreshToken;
+    // 将token存入redis
+    await this.redisService.set(
+      `token_${vo.userInfo.id}`,
+      accessToken,
+      this.configService.get('jwt_access_token_expires_in'),
+    );
 
     return vo;
   }
   generateToken(user: UserInfo) {
-    const accessToken = this.jwtService.sign(
-      {
-        userId: user.id,
-        username: user.username,
-        roles: user.roles,
-        permissions: user.permissions,
-      },
-      {
-        expiresIn: this.configService.get('jwt_access_token_expires_in'),
-      },
-    );
+    const accessToken = this.jwtService.sign({
+      userId: user.id,
+      permissions: user.permissions,
+      username: user.username,
+      roles: user.roles,
+    });
     const refreshToken = this.jwtService.sign(
       {
         userId: user.id,
@@ -359,5 +364,14 @@ export class UserService {
       })),
       total,
     };
+  }
+
+  // 退出登录
+  async logout(userId: number) {
+    return await this.redisService.del(`token_${userId}`);
+  }
+
+  checkLogin(authorization: string) {
+    return this.LoginGuard.checkLogin(authorization);
   }
 }

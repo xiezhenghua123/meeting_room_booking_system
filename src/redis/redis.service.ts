@@ -18,4 +18,9 @@ export class RedisService {
       await this.redisClient.expire(key, ttl);
     }
   }
+
+  async del(key: string) {
+    // implementation
+    return await this.redisClient.del(key);
+  }
 }

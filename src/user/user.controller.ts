@@ -240,20 +240,14 @@ export class UserController {
   @ApiResult(Boolean, '检查登录')
   @Get('check-login')
   async checkLogin(@Headers('authorization') authorization: string) {
-    if (!authorization) {
-      return false;
-    }
+    return await this.userService.checkLogin(authorization);
+  }
 
-    try {
-      const [, token] = authorization.split(' ');
-      const data = this.JwtService.verify(token);
-      if (!data) {
-        return false;
-      }
-      return true;
-    } catch (error) {
-      return false;
-    }
+  // 退出登录
+  @ApiResult(String, '退出登录')
+  @Get('logout')
+  async logout(@UserInfo('userId') userId: number) {
+    return this.userService.logout(userId);
   }
 
   // 测试接口
