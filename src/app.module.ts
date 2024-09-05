@@ -12,6 +12,10 @@ import { PermissionGuard } from './core/guard/permission.guard';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: [`./env/.env.${process.env.NODE_ENV}`],
+    }),
     JwtModule.registerAsync({
       global: true,
       useFactory(configService: ConfigService) {
@@ -47,10 +51,6 @@ import { PermissionGuard } from './core/guard/permission.guard';
     }),
     RedisModule,
     EmailModule,
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: 'src/.env',
-    }),
   ],
   controllers: [AppController],
   providers: [

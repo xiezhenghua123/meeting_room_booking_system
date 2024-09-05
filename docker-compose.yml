@@ -1,0 +1,26 @@
+services:
+  nest-app:
+    build:
+      context: ./
+      dockerfile: ./Dockerfile
+    depends_on:
+      - mysql-service
+      - redis-service
+    restart: always
+    ports:
+      - '3000:3000'
+  mysql-service:
+    image: mysql:latest
+    # ports:
+    #   - '3306:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: meeting_room_booking_system
+    volumes:
+      - E:\projects\meeting_room\meeting_room_booking_system\sql:/var/lib/mysql
+  redis-service:
+    image: redis:latest
+    # ports:
+    #   - '6379:6379'
+    volumes:
+      - E:\projects\meeting_room\meeting_room_booking_system\redis:/data

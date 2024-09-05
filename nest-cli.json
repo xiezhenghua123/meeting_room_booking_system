@@ -16,6 +16,11 @@
       }
     ],
     "deleteOutDir": true,
-    "assets": ["**/*.env"]
+    "watchAssets": true,
+    "assets": [{
+     "include": "/env/.env.production",
+     "outDir": "./dist/",
+     "watchAssets": true
+    }]
   }
 }

@@ -1,25 +1,29 @@
-FROM node:18.0-alpine3.14 AS build-stage
+FROM node:18.20-alpine3.19 AS build-stage
 
 WORKDIR /app
 
 COPY package.json .
 
-RUN npm install
+RUN npm install pnpm -g
+
+RUN pnpm install
 
 COPY . .
 
-RUN npm run build
+RUN pnpm run build
 
 # production stage
-FROM node:18.0-alpine3.14 AS production-stage
+FROM node:18.20-alpine3.19 AS production-stage
 
 COPY --from=build-stage /app/dist /app
 COPY --from=build-stage /app/package.json /app/package.json
 
 WORKDIR /app
 
-RUN npm install --production
+RUN npm install pnpm -g
+
+RUN pnpm install --production
 
 EXPOSE 3000
 
-CMD ["node", "/app/main.js"]
+CMD ["npx", "cross-env", "NODE_ENV=production", "node", "main.js"]
