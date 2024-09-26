@@ -12,7 +12,7 @@ function removePassword() {
       const data = fs.readFileSync(filePath, 'utf-8');
       // 将邮箱和密码对应的value替换为xxx
       const newData = data.replace(
-        /(nodemailer_auth_user | nodemailer_auth_pass) = .*/,
+        /(nodemailer_auth_user|nodemailer_auth_pass) = .*/g,
         '$1 = xxx',
       );
       fs.writeFileSync(filePath, newData);
