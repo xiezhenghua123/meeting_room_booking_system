@@ -8,16 +8,21 @@
   "scripts": {
     "build": "cross-env NODE_ENV=production nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start": "cross-env NODE_ENV=development nest start",
-    "start:dev": "cross-env NODE_ENV=development nest start --watch",
-    "start:debug": "cross-env NODE_ENV=development nest start --debug --watch",
-    "start:prod": "cross-env NODE_ENV=production node dist/main",
+    "start": "cross-env NODE_ENV=development nest start --config ./nest-cli.dev.json",
+    "start:dev": "cross-env NODE_ENV=development nest start --config ./nest-cli.dev.json --watch",
+    "start:debug": "cross-env NODE_ENV=development nest start --config ./nest-cli.dev.json --debug --watch",
+    "start:prod": "cross-env NODE_ENV=production node dist/main --config ./nest-cli.prod.json",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json"
+  },
+  "config": {
+   "commitizen": {
+     "path": "./node_modules/cz-conventional-changelog"
+   }
   },
   "dependencies": {
     "@nestjs/common": "^10.3.10",
@@ -31,6 +36,7 @@
     "@types/multer": "^1.4.11",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "cross-env": "^7.0.3",
     "moment": "^2.30.1",
     "multer": "1.4.5-lts.1",
     "mysql2": "^3.10.3",
@@ -39,8 +45,7 @@
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
     "swagger-ui-express": "^5.0.1",
-    "typeorm": "^0.3.20",
-    "cross-env": "^7.0.3"
+    "typeorm": "^0.3.20"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",
@@ -63,7 +68,8 @@
     "ts-loader": "^9.4.3",
     "ts-node": "^10.9.1",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.1.3"
+    "typescript": "^5.1.3",
+    "cz-conventional-changelog": "^3.3.0"
   },
   "jest": {
     "moduleFileExtensions": [

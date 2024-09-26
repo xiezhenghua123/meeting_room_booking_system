@@ -12,13 +12,13 @@ import { ConfigService } from '@nestjs/config';
       useFactory: async (configService: ConfigService) => {
         const host = configService.get('redis_server_host');
         const port = configService.get('redis_server_port');
-        console.log('redis', `redis://${host}:${port}`);
+        const dataBase = configService.get('redis_server_db');
         const client = createClient({
           socket: {
-            host: configService.get('redis_server_host'),
-            port: configService.get('redis_server_port'),
+            host,
+            port,
           },
-          database: configService.get('redis_server_db'),
+          database: dataBase,
         });
         await client.connect();
         return client;

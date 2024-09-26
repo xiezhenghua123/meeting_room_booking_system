@@ -18,7 +18,7 @@
     "deleteOutDir": true,
     "watchAssets": true,
     "assets": [{
-     "include": "/env/.env.production",
+     "include": "./env/.env.development",
      "outDir": "./dist/",
      "watchAssets": true
     }]

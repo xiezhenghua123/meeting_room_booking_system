@@ -9,12 +9,15 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { LoginGuard } from './core/guard/login.guard';
 import { PermissionGuard } from './core/guard/permission.guard';
+import * as path from 'path'; // 使用es6模块引入commonjs模块的方式
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: [`./env/.env.${process.env.NODE_ENV}`],
+      envFilePath: [
+        path.resolve(__dirname, `env/.env.${process.env.NODE_ENV}`),
+      ],
     }),
     JwtModule.registerAsync({
       global: true,
