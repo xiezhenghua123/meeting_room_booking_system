@@ -9,7 +9,7 @@
       "request": "launch",
       "runtimeArgs": ["run", "start:dev"],
       "runtimeExecutable": "pnpm",
-      "skipFiles": ["<node_internals>/**"],
+      "skipFiles": ["<node_modules>/**"],
       "type": "node",
       "console": "integratedTerminal"
     }

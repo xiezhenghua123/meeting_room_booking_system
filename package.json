@@ -6,12 +6,12 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "cross-env NODE_ENV=production nest build",
+    "build": "cross-env NODE_ENV=production nest build --config ./nest-cli.prod.json",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "cross-env NODE_ENV=development nest start --config ./nest-cli.dev.json",
     "start:dev": "cross-env NODE_ENV=development nest start --config ./nest-cli.dev.json --watch",
     "start:debug": "cross-env NODE_ENV=development nest start --config ./nest-cli.dev.json --debug --watch",
-    "start:prod": "cross-env NODE_ENV=production node dist/main --config ./nest-cli.prod.json",
+    "start:prod": "cross-env NODE_ENV=production node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -27,11 +27,11 @@
     }
   },
   "lint-staged": {
-   ".env.*": [
-     "pnpm run safe-remove",
-     "git add *"
-   ]
- },
+    ".env.*": [
+      "pnpm run safe-remove",
+      "git add *"
+    ]
+  },
   "dependencies": {
     "@nestjs/common": "^10.3.10",
     "@nestjs/config": "^3.2.3",
@@ -42,6 +42,7 @@
     "@nestjs/swagger": "^7.4.0",
     "@nestjs/typeorm": "^10.0.2",
     "@types/multer": "^1.4.11",
+    "@types/qrcode": "^1.5.5",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "cross-env": "^7.0.3",
@@ -49,6 +50,7 @@
     "multer": "1.4.5-lts.1",
     "mysql2": "^3.10.3",
     "nodemailer": "^6.9.14",
+    "qrcode": "^1.5.4",
     "redis": "^4.6.15",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
