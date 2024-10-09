@@ -9,6 +9,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { LoginGuard } from './core/guard/login.guard';
 import { PermissionGuard } from './core/guard/permission.guard';
+import { BossModule } from './boss/boss.module';
 import * as path from 'path'; // 使用es6模块引入commonjs模块的方式
 
 @Module({
@@ -54,6 +55,7 @@ import * as path from 'path'; // 使用es6模块引入commonjs模块的方式
     }),
     RedisModule,
     EmailModule,
+    BossModule,
   ],
   controllers: [AppController],
   providers: [
